@@ -1,48 +1,15 @@
 import pygame 
 import random
 import math
-from pygame import mixer
-
-#initializing pygame
-pygame.init()
-win = pygame.display.set_mode((800,600)) 
-pygame.display.set_caption("Space Invaders")
-icon = pygame.image.load('spaceinvaders/spaceship.png')
-pygame.display.set_icon(icon)
-background = pygame.image.load("spaceinvaders/bg.jpg")
-
-#background music
-'''
-mixer.music.load("spaceinvaders/background.wav")
-mixer.music.play(-1)'''
-
-#player
-player_img = pygame.image.load('spaceinvaders/invader.png')
-plyx = 370
-plyy = 480
-move_player = 0
-
-#score
-score_value = 0
-font = pygame.font.Font('freesansbold.ttf',32)
-textx = 10
-texty =10
-
-game_over_font = pygame.font.Font('freesansbold.ttf',64)
-
-#play again button color and text
-blue = (0,0,255)
-dark_blue = (0,0,100)
-text_font = pygame.font.Font('freesansbold.ttf',18)
-white = (255,255,255)
+from sys import exit
 
 def show_score(x,y):
-	score = font.render("Score: "+str(score_value),True,(255,255,255))
+	score = score_font.render("Score: "+str(score_value),True,(255,255,255))
 	win.blit(score,(x,y))
 
 def text_objects(text,color,size="small"):
 	if size == "small":
-		textsurface = text_font.render(text,True,color)	
+		textsurface = button_text_font.render(text,True,color)	
 
 	return textsurface,textsurface.get_rect()	
 
@@ -54,7 +21,7 @@ def text_to_button(text,color,btnx,btny,btnw,btnh,size="small"):
 def game_over():
 	game_over_text = game_over_font.render("GAME OVER",True,(255,255,255))
 	win.blit(game_over_text,(200,250))
-	mixer.music.stop()
+	pygame.mixer.music.stop()
 	pygame.draw.rect(win,blue,(340,310,150,50))
 
 	text_to_button("Play Again",white,340,310,150,50)
@@ -73,6 +40,43 @@ def game_over():
 
 def player(x,y):
 	win.blit(player_img,(x,y))
+
+
+#initializing pygame
+pygame.init()
+win = pygame.display.set_mode((800,600)) 
+pygame.display.set_caption("Space Invaders")
+icon = pygame.image.load('spaceinvaders/spaceship.png').convert()
+pygame.display.set_icon(icon)
+score_font = pygame.font.Font('freesansbold.ttf',32)
+game_over_font = pygame.font.Font('freesansbold.ttf',64)
+button_text_font = pygame.font.Font('freesansbold.ttf',18)
+#background music
+'''
+pygame.mixer.music.load("spaceinvaders/background.wav")
+pygame.mixer.music.play(-1)'''
+
+#world
+background = pygame.image.load("spaceinvaders/bg.jpg").convert()
+
+
+
+#player
+player_img = pygame.image.load('spaceinvaders/invader.png')
+ply_x = 370
+ply_y = 480
+move_player = 0
+
+#score
+score_value = 0
+textx = 10
+texty =10
+
+
+#play again button color and text
+blue = (0,0,255)
+dark_blue = (0,0,100)
+white = (255,255,255)
 
 #  multiple enemies
 enemy_img = []
@@ -123,29 +127,30 @@ while run:
 	for event in pygame.event.get():
 		if event.type == pygame.QUIT:
 			run = False		
+			exit()
 
 		#keyboard keys
 		if event.type == pygame.KEYDOWN:
 			if event.key == pygame.K_LEFT:
-				move_player -= 5
+				move_player -= 0.5
 			if event.key == pygame.K_RIGHT:
-				move_player += 5
+				move_player += 0.5
 			if event.key == pygame.K_UP:
 				if bullet_state == "ready":
-					bullet_sound = mixer.Sound('spaceinvaders/laser.wav')
+					bullet_sound = pygame.mixer.Sound('spaceinvaders/laser.wav')
 					bullet_sound.play()
-					bultx = plyx
+					bultx = ply_x
 					firebullet(bultx,bulty)
 		if event.type == pygame.KEYUP:
+			bultx = ply_x + 40
+			firebullet(bultx,bulty)
 			if event.key == pygame.K_LEFT or event.key == pygame.K_RIGHT:
 				move_player = 0 
 				
 	#borders		
-	plyx += move_player			
-	if plyx < 0:
-		plyx = 0 
-	elif plyx > 736:
-		plyx = 736
+	ply_x += move_player			
+	if ply_x < 0: ply_x = 0 
+	elif ply_x > 736: ply_x = 736
 
 	#enemy movement
 	for i in range(num_of_enemies):
@@ -153,21 +158,20 @@ while run:
 		if enmy[i] > 400:
 			for j in range(num_of_enemies):
 				enmy[j] = 2000
-			game_over()	
-			break
+			run = game_over()	
 
 		enmx[i] += move_enemyx[i]	
 		if enmx[i] > 736:
-			move_enemyx[i] -= 3
+			move_enemyx[i] -= 1
 			enmy[i] += move_enemyy[i]
 		elif enmx[i] < 0:
-			move_enemyx[i] = 3
+			move_enemyx[i] = 1
 			enmy[i] += move_enemyy[i]
 
 		#collision
 		collision = iscollision(enmx[i],enmy[i],bultx,bulty)
 		if collision:
-			explosion_sound = mixer.Sound('spaceinvaders/explosion.wav')
+			explosion_sound = pygame.mixer.Sound('spaceinvaders/explosion.wav')
 			explosion_sound.play()
 			bulty = 503
 			bullet_state = "ready"
@@ -185,6 +189,6 @@ while run:
 			bulty = 503
 			bullet_state = "ready"
 
-	player(plyx,plyy)
+	player(ply_x,ply_y)
 	show_score(texty,texty)
 	pygame.display.update()		
