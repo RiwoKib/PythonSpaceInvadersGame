@@ -1,4 +1,4 @@
-import pygame
+import pygame, math
 from sys import exit
 import random
 
@@ -35,13 +35,13 @@ class Player(pygame.sprite.Sprite):
     def move(self):
         pressed_keys = pygame.key.get_pressed()
 
-        if pressed_keys[pygame.K_UP]:
+        if pressed_keys[pygame.K_UP] and self.player_rect.top > 0:
             self.player_rect.y -= self.player_velocity
-        if pressed_keys[pygame.K_DOWN] and self.player_rect.height + self.player_rect.y + self.player_velocity < SCREEN_HEIGHT:
+        if pressed_keys[pygame.K_DOWN] and self.player_rect.bottom < SCREEN_HEIGHT:
             self.player_rect.y += self.player_velocity
-        if pressed_keys[pygame.K_LEFT] and self.player_rect.x - self.player_velocity > 0:
+        if pressed_keys[pygame.K_LEFT] and self.player_rect.left > 0:
             self.player_rect.x -= self.player_velocity
-        if pressed_keys[pygame.K_RIGHT] and self.player_rect.x + self.player_rect.width + self.player_velocity < SCREEN_WIDTH:
+        if pressed_keys[pygame.K_RIGHT] and self.player_rect.right < SCREEN_WIDTH:
             self.player_rect.x += self.player_velocity
 
     def display(self, surface):
@@ -55,22 +55,50 @@ class Enemy(pygame.sprite.Sprite):
         self.random_x_position = random.randint(0, SCREEN_WIDTH)
         #random_y_position = random.randint(-40, 0)
         self.enemy_rect = self.ENEMY.get_rect(midtop = (self.random_x_position,0))
-        self.enemy_vel = 2
+        self.enemy_speed = 0.01
+        self.enemy_angle = 0
 
     def move(self):
-        self.enemy_rect.x += self.enemy_vel
+        self.enemy_rect.x += math.sin(self.enemy_angle) * self.enemy_speed
+        self.enemy_rect.y -= math.cos(self.enemy_angle) * self.enemy_speed
 
         if self.enemy_rect.right > SCREEN_WIDTH:
-            self.enemy_rect.left = -20
+            self.enemy_angle *= -1
+            self.enemy_rect.x += math.sin(self.enemy_angle) * self.enemy_speed
+            self.enemy_rect.y -= math.cos(self.enemy_angle) * self.enemy_speed
+
+        if self.enemy_rect.left < 0:
+            self.enemy_angle *= -1
+            self.enemy_rect.x += math.sin(self.enemy_angle) * self.enemy_speed
+            self.enemy_rect.y -= math.cos(self.enemy_angle) * self.enemy_speed
+
+
+
+    
 
     def display(self, surface):
         surface.blit(self.ENEMY, self.enemy_rect)
 
 
+class Bullet(pygame.sprite.Sprite):
+    def __init__(self, player_rect):
+        super().__init__()
+        self.BULLET = pygame.image.load('spaceinvaders/bullet.png').convert_alpha()
+        bullet_x = player_rect.x + (player_rect.width // 2)
+        bullet_y = player_rect.y + (player_rect.height // 2)
+        self.bullet_rect = self.BULLET.get_rect(midbottom =(bullet_x, bullet_y))
+        self.bullet_velocity = 1
+
+    def fire_bullet(self):
+        self.bullet_rect.y -= self.bullet_velocity
+
+    def display(self, surface):
+        surface.blit(self.BULLET, self.bullet_rect)
 
 
 #CREATE PLAYER & ENEMY
 player = Player()
+bullets = []
 enemies = []
 
 #ADD A USER EVENT to randomize enemy spawning
@@ -87,12 +115,18 @@ def draw_window():
     pygame.draw.rect(SCREEN, (255,182,193),score_rect)
     SCREEN.blit(score, score_rect)
 
+    
+
+    #SHOW BULLETS
+    for bullet in bullets:
+        bullet.display(SCREEN)
+        bullet.fire_bullet()
+    
     #SHOW & HANDLE PLAYER MOVEMENTS
     player.display(SCREEN)
     player.move()
 
     #SHOW ENEMIES & MOVEMENTS
-
     for enemy in enemies:
         enemy.display(SCREEN)
         enemy.move()
@@ -108,7 +142,14 @@ while True:
 
         if event.type == SPAWN_ENEMY:
             enemy = Enemy()
+            enemy.enemy_speed = random.randint(1,2)
+            enemy.enemy_angle = random.uniform(0, math.pi * 2)
             enemies.append(enemy)
+        
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_SPACE:
+                bullet = Bullet(player.player_rect)
+                bullets.append(bullet)
 
     draw_window()
 
