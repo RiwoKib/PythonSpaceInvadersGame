@@ -31,6 +31,7 @@ class Player(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(midbottom = (400,570))
         self.player_velocity = 10
         self.score_value = 0
+        self.health = 100
 
     def update(self):
         pressed_keys = pygame.key.get_pressed()
@@ -48,14 +49,15 @@ class Player(pygame.sprite.Sprite):
         surface.blit(self.image, self.rect)
 
 class Enemy(pygame.sprite.Sprite):
+
     def __init__(self, enemy_image):
         super().__init__()
         self.image = enemy_image
-        self.random_x_position = random.randint(0, SCREEN_WIDTH)
+        self.random_x_position = random.randint(10, SCREEN_WIDTH - 64)
         #random_y_position = random.randint(-40, 0)
         self.rect = self.image.get_rect(midtop = (self.random_x_position,0))
-        self.enemy_speed = 0.01
-        self.enemy_angle = 0
+        self.enemy_speed = random.randint(1,3)
+        self.enemy_angle = random.uniform(0, math.pi * 2)
 
     def update(self):
         self.rect.x += math.sin(self.enemy_angle) * self.enemy_speed
@@ -90,12 +92,29 @@ class Bullet(pygame.sprite.Sprite):
     def update(self):
         self.rect.y -= self.bullet_velocity
 
+        if self.rect.top < 0:
+            self.kill()
+
     def display(self, surface):
         surface.blit(self.image, self.rect)
 
 
+
 #CREATE THE PLAYER
 player = Player(PLAYER)
+
+
+#CREATE HEALTH BAR
+bar_width = player.rect.width
+bar_height = 5
+bar_width_decrement = bar_width // player.health + 1
+
+bar_color = {
+    'green': (0, 255, 0),
+    'red': (255, 0, 0),
+    'orange': (255, 140, 0)
+}
+
 
 #WAIT FOR enemies/bullets/collisions
 bullets = []
@@ -107,7 +126,10 @@ enemy_shot = False
 
 #ADD A USER EVENT to randomize enemy spawning
 SPAWN_ENEMY = pygame.USEREVENT + 1
-pygame.time.set_timer(SPAWN_ENEMY, 2000)
+pygame.time.set_timer(SPAWN_ENEMY, 1000)
+
+# INCREASE_ENEMY_SPEED = pygame.USEREVENT + 1
+# pygame.time.set_timer(INCREASE_ENEMY_SPEED, 5000)
 
 
 #SPRITE GROUPS for collisions
@@ -137,22 +159,28 @@ def draw_window():
     player_group.draw(SCREEN)
     player_group.update()
 
+    #SHOW HEALTH BAR
+    if player.health > 90:
+        pygame.draw.rect(SCREEN, bar_color['green'], (bar_x, bar_y, bar_width, bar_height))
+    elif player.health > 75:
+        pygame.draw.rect(SCREEN, bar_color['orange'], (bar_x, bar_y, bar_width, bar_height))
+    elif player.health < 45:
+        pygame.draw.rect(SCREEN, bar_color['red'], (bar_x, bar_y, bar_width, bar_height))
+
 #THE GAME LOOP
 while game_active:
     CLOCK.tick(30)
 
     for event in pygame.event.get():
+
         if event.type == pygame.QUIT:
             pygame.quit()
             exit()
 
         if event.type == SPAWN_ENEMY:
             enemy = Enemy(ENEMY)
-            enemy.enemy_speed = random.randint(1,2)
-            enemy.enemy_angle = random.uniform(0, math.pi * 2)
             enemies.append(enemy)
-            enemy.enemy_speed += 0.05
-        
+
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_SPACE:
                 bullet = Bullet(BULLET, player.rect)
@@ -165,7 +193,11 @@ while game_active:
     for enemy in enemies:
         enemy_group.add(enemy)
   
-  
+    #MOVE HEALTH BAR with player
+    bar_x = player.rect.x
+    bar_y = player.rect.y + player.rect.height
+
+
     #CHECK ENEMY collisions with bullet and player
     for enemy in enemies:
         enemy_bullet_collided = pygame.sprite.spritecollide(enemy, bullet_group, True, pygame.sprite.collide_mask)
@@ -182,11 +214,13 @@ while game_active:
 
         if enemy_collided:
             enemies.remove(enemy)
-            enemy_group.remove(enemy)
-    
+            enemy_group.remove(enemy)  
+            player.health -= 1  
+            bar_width -= bar_width_decrement
 
- 
-
+    if bar_width < 0:
+        game_active = False
+        
     draw_window()
     
     pygame.display.flip()
