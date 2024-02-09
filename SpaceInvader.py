@@ -23,11 +23,6 @@ BULLET = pygame.transform.scale(pygame.image.load('spaceinvaders/bullet.png'),(2
 ENEMY = pygame.image.load("spaceinvaders/enemy.png").convert_alpha()
 PLAYER = pygame.image.load('spaceinvaders/invader.png').convert_alpha()
 
-#SCORE VALUE
-score_value = 0
-score = SCORE_FONT.render('SCORE:' +str(score_value) , False, (64,64,64))
-score_rect = score.get_rect(bottomleft = (0,600))
-
 class Player(pygame.sprite.Sprite):
 
     def __init__(self, player_image):
@@ -35,6 +30,7 @@ class Player(pygame.sprite.Sprite):
         self.image = player_image
         self.rect = self.image.get_rect(midbottom = (400,570))
         self.player_velocity = 10
+        self.score_value = 0
 
     def update(self):
         pressed_keys = pygame.key.get_pressed()
@@ -75,6 +71,9 @@ class Enemy(pygame.sprite.Sprite):
             self.rect.x += math.sin(self.enemy_angle) * self.enemy_speed
             self.rect.y -= math.cos(self.enemy_angle) * self.enemy_speed
 
+        if self.rect.top < -50 or self.rect.bottom > SCREEN_HEIGHT + 50:
+            self.kill()
+
     def display(self, surface):
         surface.blit(self.image, self.rect)
 
@@ -102,8 +101,9 @@ player = Player(PLAYER)
 bullets = []
 enemies = []
 enemy_collided= []
-bullet_collided = []
 enemy_bullet_collided = []
+bullet_enemy_collided = []
+enemy_shot = False
 
 #ADD A USER EVENT to randomize enemy spawning
 SPAWN_ENEMY = pygame.USEREVENT + 1
@@ -120,20 +120,22 @@ def draw_window():
     SCREEN.blit(BG, (0,0))
 
     #SHOW SCORE
+    score = SCORE_FONT.render('SCORE:' +str(player.score_value) , False, (64,64,64))
+    score_rect = score.get_rect(bottomleft = (0,600))
     pygame.draw.rect(SCREEN, (255,182,193),score_rect)
     SCREEN.blit(score, score_rect)
 
     #SHOW BULLETS & MOVEMENTS
-    bullet_group.draw(SCREEN)
     bullet_group.update()
+    bullet_group.draw(SCREEN)
     
     #SHOW ENEMIES & MOVEMENTS
     enemy_group.update()    
     enemy_group.draw(SCREEN)
     
     #SHOW & HANDLE PLAYER MOVEMENTS
-    player.display(SCREEN)
-    player.update()
+    player_group.draw(SCREEN)
+    player_group.update()
 
 #THE GAME LOOP
 while game_active:
@@ -149,6 +151,7 @@ while game_active:
             enemy.enemy_speed = random.randint(1,2)
             enemy.enemy_angle = random.uniform(0, math.pi * 2)
             enemies.append(enemy)
+            enemy.enemy_speed += 0.05
         
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_SPACE:
@@ -161,14 +164,30 @@ while game_active:
 
     for enemy in enemies:
         enemy_group.add(enemy)
+  
+  
+    #CHECK ENEMY collisions with bullet and player
+    for enemy in enemies:
+        enemy_bullet_collided = pygame.sprite.spritecollide(enemy, bullet_group, True, pygame.sprite.collide_mask)
 
+        if enemy_bullet_collided:
+            enemies.remove(enemy)
+            enemy_group.remove(enemy)
 
-    enemy_collided = pygame.sprite.spritecollide(player_group.sprite, enemy_group, True, pygame.sprite.collide_mask)
+            for bullet in enemy_bullet_collided:
+                bullet_group.remove(bullet)
+            player.score_value += 1 
 
-    enemy_bullet_collided = pygame.sprite.groupcollide(bullet_group, enemy_group, True, True, pygame.sprite.collide_mask)
+        enemy_collided = pygame.sprite.spritecollide(player_group.sprite, enemy_group, True, pygame.sprite.collide_mask)
+
+        if enemy_collided:
+            enemies.remove(enemy)
+            enemy_group.remove(enemy)
+    
+
+ 
 
     draw_window()
-
-
-    pygame.display.update()
+    
+    pygame.display.flip()
 
