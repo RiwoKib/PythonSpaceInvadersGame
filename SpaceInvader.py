@@ -61,17 +61,17 @@ class Enemy(pygame.sprite.Sprite):
 
     def update(self):
         self.rect.x += math.sin(self.enemy_angle) * self.enemy_speed
-        self.rect.y -= math.cos(self.enemy_angle) * self.enemy_speed
+        self.rect.y += math.cos(self.enemy_angle) * self.enemy_speed
 
         if self.rect.right > SCREEN_WIDTH:
             self.enemy_angle *= -1
             self.rect.x += math.sin(self.enemy_angle) * self.enemy_speed
-            self.rect.y -= math.cos(self.enemy_angle) * self.enemy_speed
+            self.rect.y += math.cos(self.enemy_angle) * self.enemy_speed
 
         if self.rect.left < 0:
             self.enemy_angle *= -1
             self.rect.x += math.sin(self.enemy_angle) * self.enemy_speed
-            self.rect.y -= math.cos(self.enemy_angle) * self.enemy_speed
+            self.rect.y += math.cos(self.enemy_angle) * self.enemy_speed
 
         if self.rect.top < -50 or self.rect.bottom > SCREEN_HEIGHT + 50:
             self.kill()
@@ -160,11 +160,11 @@ def draw_window():
     player_group.update()
 
     #SHOW HEALTH BAR
-    if player.health > 90:
+    if player.health > 80:
         pygame.draw.rect(SCREEN, bar_color['green'], (bar_x, bar_y, bar_width, bar_height))
-    elif player.health > 75:
+    elif player.health >= 50:
         pygame.draw.rect(SCREEN, bar_color['orange'], (bar_x, bar_y, bar_width, bar_height))
-    elif player.health < 45:
+    elif player.health < 50:
         pygame.draw.rect(SCREEN, bar_color['red'], (bar_x, bar_y, bar_width, bar_height))
 
 #THE GAME LOOP
@@ -210,7 +210,7 @@ while game_active:
                 bullet_group.remove(bullet)
             player.score_value += 1 
 
-        enemy_collided = pygame.sprite.spritecollide(player_group.sprite, enemy_group, True, pygame.sprite.collide_mask)
+        enemy_collided = pygame.sprite.collide_mask(player_group.sprite, enemy)
 
         if enemy_collided:
             enemies.remove(enemy)
