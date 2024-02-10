@@ -6,6 +6,7 @@ import random, time
 pygame.mixer.init()
 pygame.init()
 
+opener = pygame.mixer.Sound('spaceinvaders/opener.wav')
 play_shot = pygame.mixer.Sound('spaceinvaders/laser.wav')
 play_explosion = pygame.mixer.Sound('spaceinvaders/explosion.wav')
 
@@ -17,10 +18,10 @@ ICON = pygame.image.load('spaceinvaders/spaceship.png').convert()
 pygame.display.set_icon(ICON)
 game_active = False
 
-
-SCORE_FONT = pygame.font.Font('freesansbold.ttf',32)
+pixel_font = pygame.font.Font('spaceinvaders/Pixeltype.ttf', 50)
+SCORE_FONT = pygame.font.Font('spaceinvaders/Pixeltype.ttf',42)
 GAME_OVER_FONT = pygame.font.Font('freesansbold.ttf',64)
-BUTTON_TEXT_FONT = pygame.font.Font('freesansbold.ttf',18)
+BUTTON_TEXT_FONT = pygame.font.Font('spaceinvaders/Pixeltype.ttf',38)
 
 #WORLD
 BG = pygame.image.load("spaceinvaders/bg.jpg").convert()
@@ -43,7 +44,7 @@ class Player(pygame.sprite.Sprite):
 
         if pressed_keys[pygame.K_UP] and self.rect.top > 0:
             self.rect.y -= self.player_velocity
-        if pressed_keys[pygame.K_DOWN] and self.rect.bottom < SCREEN_HEIGHT:
+        if pressed_keys[pygame.K_DOWN] and self.rect.bottom + bar_height + 5 < SCREEN_HEIGHT:
             self.rect.y += self.player_velocity
         if pressed_keys[pygame.K_LEFT] and self.rect.left > 0:
             self.rect.x -= self.player_velocity
@@ -173,10 +174,10 @@ def intro_screen():
     play_clicked = False
     bar_width = player.rect.width
     player.score_value = 0
+    player.health = 100
 
-
-    pygame.draw.rect(SCREEN,(0,0,255),play_again_btn)
-    pygame.draw.rect(SCREEN,(255,0,0),quit_btn)
+    pygame.draw.rect(SCREEN,(0,0,255),play_again_btn,border_radius=15)
+    pygame.draw.rect(SCREEN,(255,0,0),quit_btn, border_radius=15)
 
     #SHOW PLAY & QUIT text on their buttons
     text_to_button('PLAY', (255,255,255), 230,320,150,50)
@@ -189,6 +190,7 @@ def intro_screen():
         if pygame.mouse.get_pressed()[0] == 1 and not play_clicked:
             print('PLAY')
             play_clicked = True
+            opener.play()
     elif quit_btn.collidepoint(mouse_pos):
         if pygame.mouse.get_pressed()[0] == 1:
             pygame.quit()
@@ -286,7 +288,7 @@ while True:
             bar_width -= bar_width_decrement
 
     
-    if bar_width < 64:
+    if bar_width < 0:
         enemy_group.empty()
         enemies.clear()
         bullet_group.empty()
