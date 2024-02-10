@@ -1,6 +1,6 @@
 import pygame, pygame.mixer, math
 from sys import exit
-import random
+import random, time
 
 #INITIALIZE & SETUP
 pygame.mixer.init()
@@ -15,7 +15,7 @@ SCREEN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Space Invader")
 ICON = pygame.image.load('spaceinvaders/spaceship.png').convert()
 pygame.display.set_icon(ICON)
-game_active = True
+game_active = False
 
 
 SCORE_FONT = pygame.font.Font('freesansbold.ttf',32)
@@ -78,7 +78,7 @@ class Enemy(pygame.sprite.Sprite):
             self.rect.x += math.sin(self.enemy_angle) * self.enemy_speed
             self.rect.y += math.cos(self.enemy_angle) * self.enemy_speed
 
-        if self.rect.top < 0 or self.rect.bottom > SCREEN_HEIGHT:
+        if self.rect.top < -64 or self.rect.bottom > SCREEN_HEIGHT + 64:
             self.kill()
             enemies.remove(self)
 
@@ -144,10 +144,66 @@ enemy_group = pygame.sprite.Group()
 bullet_group = pygame.sprite.Group()
 player_group = pygame.sprite.GroupSingle(player)
 
-def draw_window():
-    #SHOW BACKGROUND
-    SCREEN.blit(BG, (0,0))
 
+#BUILDING BLOCKS
+play_again_btn = pygame.Rect(230,320,150,50)
+quit_btn = pygame.Rect(400, 320, 150, 50)
+
+#HELPERS to show text to buttons
+def text_objects(text,color):
+	textsurface = BUTTON_TEXT_FONT.render(text,True,color)	
+
+	return textsurface,textsurface.get_rect()	
+
+def text_to_button(text,
+                   color,
+                   btnx,
+                   btny,
+                   btnw,
+                   btnh):
+	textsurface, textrect = text_objects(text,color)	
+	textrect.center = (btnx+(btnw//2),btny+(btnh//2))
+	SCREEN.blit(textsurface,textrect)
+
+
+def intro_screen():
+    global bar_width
+
+    #RESET variables
+    play_clicked = False
+    bar_width = player.rect.width
+    player.score_value = 0
+
+
+    pygame.draw.rect(SCREEN,(0,0,255),play_again_btn)
+    pygame.draw.rect(SCREEN,(255,0,0),quit_btn)
+
+    #SHOW PLAY & QUIT text on their buttons
+    text_to_button('PLAY', (255,255,255), 230,320,150,50)
+    text_to_button('QUIT', (255,255,255), 400,320,150,50)
+    
+    #HANDLE BTN CLICKS
+    mouse_pos = pygame.mouse.get_pos()
+
+    if play_again_btn.collidepoint(mouse_pos):
+        if pygame.mouse.get_pressed()[0] == 1 and not play_clicked:
+            print('PLAY')
+            play_clicked = True
+    elif quit_btn.collidepoint(mouse_pos):
+        if pygame.mouse.get_pressed()[0] == 1:
+            pygame.quit()
+            exit()
+    
+    if pygame.mouse.get_pressed()[0] == 0:
+        play_clicked = False
+
+    return play_clicked
+
+def game_over_screen():
+    game_over_text = GAME_OVER_FONT.render('GAME OVER',True,(255,255,255))
+    SCREEN.blit(game_over_text, (200,250))
+
+def draw_window():
     #SHOW SCORE
     score = SCORE_FONT.render('SCORE:' +str(player.score_value) , False, (64,64,64))
     score_rect = score.get_rect(bottomleft = (0,600))
@@ -175,8 +231,11 @@ def draw_window():
         pygame.draw.rect(SCREEN, bar_color['red'], (bar_x, bar_y, bar_width, bar_height))
 
 #THE GAME LOOP
-while game_active:
+while True:
     CLOCK.tick(60)
+    
+    #SHOW BACKGROUND
+    SCREEN.blit(BG, (0,0))
 
     for event in pygame.event.get():
 
@@ -184,9 +243,10 @@ while game_active:
             pygame.quit()
             exit()
 
-        if event.type == SPAWN_ENEMY:
-            enemy = Enemy(ENEMY)
-            enemies.append(enemy)
+        if game_active:
+            if event.type == SPAWN_ENEMY:
+                enemy = Enemy(ENEMY)
+                enemies.append(enemy)
 
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_SPACE:
@@ -215,6 +275,7 @@ while game_active:
             enemies.remove(enemy)
             enemy_group.remove(enemy)
             player.score_value += 1 
+            
 
         enemy_collided = pygame.sprite.collide_mask(player_group.sprite, enemy)
 
@@ -224,10 +285,20 @@ while game_active:
             player.health -= 1  
             bar_width -= bar_width_decrement
 
-    if bar_width < 0:
+    
+    if bar_width < 64:
+        enemy_group.empty()
+        enemies.clear()
+        bullet_group.empty()
+        bullets.clear()
         game_active = False
-        
-    draw_window()
+        player.rect.midbottom = (400,570)
+
+    if game_active:
+        draw_window()
+    else:
+        if intro_screen():
+            game_active = True
     
     pygame.display.flip()
 
