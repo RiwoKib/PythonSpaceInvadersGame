@@ -1,9 +1,14 @@
-import pygame, math
+import pygame, pygame.mixer, math
 from sys import exit
 import random
 
 #INITIALIZE & SETUP
+pygame.mixer.init()
 pygame.init()
+
+play_shot = pygame.mixer.Sound('spaceinvaders/laser.wav')
+play_explosion = pygame.mixer.Sound('spaceinvaders/explosion.wav')
+
 CLOCK = pygame.time.Clock()
 SCREEN_WIDTH, SCREEN_HEIGHT = 800, 600
 SCREEN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -73,8 +78,9 @@ class Enemy(pygame.sprite.Sprite):
             self.rect.x += math.sin(self.enemy_angle) * self.enemy_speed
             self.rect.y += math.cos(self.enemy_angle) * self.enemy_speed
 
-        if self.rect.top < -50 or self.rect.bottom > SCREEN_HEIGHT + 50:
+        if self.rect.top < 0 or self.rect.bottom > SCREEN_HEIGHT:
             self.kill()
+            enemies.remove(self)
 
     def display(self, surface):
         surface.blit(self.image, self.rect)
@@ -94,6 +100,7 @@ class Bullet(pygame.sprite.Sprite):
 
         if self.rect.top < 0:
             self.kill()
+            bullets.remove(self)
 
     def display(self, surface):
         surface.blit(self.image, self.rect)
@@ -169,7 +176,7 @@ def draw_window():
 
 #THE GAME LOOP
 while game_active:
-    CLOCK.tick(30)
+    CLOCK.tick(60)
 
     for event in pygame.event.get():
 
@@ -183,6 +190,7 @@ while game_active:
 
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_SPACE:
+                play_shot.play().set_volume(0.1)
                 bullet = Bullet(BULLET, player.rect)
                 bullets.append(bullet)
 
@@ -203,11 +211,9 @@ while game_active:
         enemy_bullet_collided = pygame.sprite.spritecollide(enemy, bullet_group, True, pygame.sprite.collide_mask)
 
         if enemy_bullet_collided:
+            play_explosion.play().set_volume(0.1)
             enemies.remove(enemy)
             enemy_group.remove(enemy)
-
-            for bullet in enemy_bullet_collided:
-                bullet_group.remove(bullet)
             player.score_value += 1 
 
         enemy_collided = pygame.sprite.collide_mask(player_group.sprite, enemy)
